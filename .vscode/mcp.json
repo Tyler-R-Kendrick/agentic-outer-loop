@@ -1,0 +1,44 @@
+{
+  "servers": {
+    "github": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}"
+      }
+    },
+    "snyk": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "snyk@latest", "mcp", "-t", "stdio"],
+      "env": {
+        "SNYK_TOKEN": "${input:snyk_token}"
+      }
+    },
+    "azure": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"]
+    },
+    "microsoft-learn-docs": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    }
+  },
+  "inputs": [
+    {
+      "id": "snyk_token",
+      "type": "promptString",
+      "description": "Snyk API Token",
+      "password": true
+    }
+  ]
+}

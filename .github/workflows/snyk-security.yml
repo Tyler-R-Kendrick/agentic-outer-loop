@@ -1,0 +1,148 @@
+name: Snyk Security Analysis
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  snyk-security:
+    name: Snyk Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      - name: Run Snyk to check for vulnerabilities
+        id: snyk-test
+        run: |
+          if ! snyk test --severity-threshold=high --json-file-output=snyk-results.json; then
+            echo "SNYK_FAILED=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Run Snyk code analysis
+        id: snyk-code
+        run: |
+          if ! snyk code test --severity-threshold=high --json-file-output=snyk-code-results.json; then
+            echo "SNYK_CODE_FAILED=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Snyk results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: |
+            snyk-results.json
+            snyk-code-results.json
+          if-no-files-found: ignore
+
+      - name: Determine overall Snyk status
+        id: snyk-status
+        run: |
+          if [ "${{ steps.snyk-test.outputs.SNYK_FAILED }}" = "true" ] || [ "${{ steps.snyk-code.outputs.SNYK_CODE_FAILED }}" = "true" ]; then
+            echo "failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "failed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fail on vulnerabilities
+        if: steps.snyk-status.outputs.failed == 'true'
+        run: |
+          echo "::error::Snyk found high or critical severity vulnerabilities. Please review and fix before merging."
+          exit 1
+
+  create-issue-on-failure:
+    name: Create Issue on Snyk Failure
+    runs-on: ubuntu-latest
+    needs: snyk-security
+    if: failure() && github.event_name == 'push'
+    steps:
+      - name: Create GitHub issue for Snyk vulnerabilities
+        id: create-issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `🔒 Security: Snyk found vulnerabilities in ${context.sha.substring(0, 7)}`;
+            const body = [
+              '## Security Vulnerabilities Detected',
+              '',
+              `Snyk identified high or critical severity vulnerabilities in commit \`${context.sha}\` on branch \`${context.ref.replace('refs/heads/', '')}\`.`,
+              '',
+              '### Details',
+              `- **Workflow Run:** [View run](${runUrl})`,
+              `- **Commit:** [\`${context.sha.substring(0, 7)}\`](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})`,
+              `- **Branch:** \`${context.ref.replace('refs/heads/', '')}\``,
+              '',
+              '### Action Required',
+              'Please review the Snyk scan results in the workflow run above and address all high and critical severity vulnerabilities.',
+              '',
+              '### Resources',
+              '- [Snyk Documentation](https://docs.snyk.io)',
+              '- [Fixing vulnerabilities](https://docs.snyk.io/fix-your-vulnerabilities)',
+              '',
+              '---',
+              '_This issue was automatically created by the Snyk Security Analysis workflow._',
+            ].join('\n');
+
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'bug', 'copilot'],
+            });
+
+            console.log(`Created issue #${issue.number}: ${issue.html_url}`);
+            return String(issue.number);
+
+      - name: Assign issue to GitHub Copilot Coding Agent
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.COPILOT_PAT || secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = parseInt('${{ steps.create-issue.outputs.result }}');
+            if (!issueNumber) {
+              console.log('No issue number found, skipping assignment.');
+              return;
+            }
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: ['copilot'],
+              });
+              console.log(`Assigned issue #${issueNumber} to Copilot Coding Agent`);
+            } catch (error) {
+              console.log(`Could not assign to Copilot: ${error.message}`);
+              console.log('Note: If assignment fails, ensure Copilot Coding Agent is enabled for this repository.');
+              console.log('A COPILOT_PAT secret (PAT with repo scope from a user with Copilot enabled) can be added to override the default GITHUB_TOKEN.');
+            }

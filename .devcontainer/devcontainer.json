@@ -1,0 +1,26 @@
+{
+  "name": "Agentic Outer Loop",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "postCreateCommand": "npm install -g skills && (npx skills add vercel-labs/agent-skills --all || echo 'Warning: vercel-labs/agent-skills installation failed') && (npx skills add github/awesome-copilot --all || echo 'Warning: github/awesome-copilot installation failed')",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "snyk-security.snyk-vulnerability-scanner"
+      ],
+      "settings": {
+        "github.copilot.enable": {
+          "*": true
+        }
+      }
+    }
+  }
+}
