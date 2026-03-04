@@ -143,5 +143,6 @@ jobs:
               console.log(`Assigned issue #${issueNumber} to Copilot Coding Agent`);
             } catch (error) {
               console.log(`Could not assign to Copilot: ${error.message}`);
-              console.log('Note: Assigning to Copilot requires a PAT with repo scope stored as COPILOT_PAT secret.');
+              console.log('Note: If assignment fails, ensure Copilot Coding Agent is enabled for this repository.');
+              console.log('A COPILOT_PAT secret (PAT with repo scope from a user with Copilot enabled) can be added to override the default GITHUB_TOKEN.');
             }

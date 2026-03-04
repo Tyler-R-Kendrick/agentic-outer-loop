@@ -23,11 +23,11 @@ A repository template implementing the GitHub Agentic Outer Loop dev cycle using
 
 2. **Configure secrets** – In your repository Settings > Secrets and variables > Actions, add:
    - `SNYK_TOKEN` – Your [Snyk API token](https://app.snyk.io/account)
-   - `COPILOT_PAT` – A GitHub [Personal Access Token](https://github.com/settings/tokens) with `repo` scope (needed to assign issues to Copilot Coding Agent)
+   - `COPILOT_PAT` *(optional)* – A GitHub [Personal Access Token](https://github.com/settings/tokens) with `repo` scope. Only needed if the default `GITHUB_TOKEN` cannot assign issues to the Copilot Coding Agent. The workflow falls back to `GITHUB_TOKEN` automatically.
 
 3. **Configure Copilot environment secrets** – In Settings > Environments > `copilot`, add:
-   - `COPILOT_MCP_GITHUB_TOKEN` – GitHub Personal Access Token for the GitHub MCP server
    - `COPILOT_MCP_SNYK_TOKEN` – Snyk API token for the Snyk MCP server
+   - `COPILOT_MCP_GITHUB_TOKEN` *(optional)* – GitHub Personal Access Token for the GitHub MCP server. The Copilot Agent environment already provides `GITHUB_TOKEN`; only add this if you need a token with broader scopes.
 
 4. **Configure MCP servers for Copilot Coding Agent** – In Settings > Copilot > Coding agent > MCP configuration, add the configuration from [`.vscode/mcp.json`](.vscode/mcp.json) (adapted to the Copilot MCP JSON format; see [GitHub docs](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/extend-coding-agent-with-mcp)).
 

@@ -39,9 +39,9 @@ The following agent skill collections are installed:
 ## Secrets Required
 Configure the following secrets in your repository settings:
 - `SNYK_TOKEN`: Snyk API token for security scanning
-- `COPILOT_PAT`: GitHub Personal Access Token (with `repo` scope) for assigning issues to Copilot Coding Agent
+- `COPILOT_PAT` *(optional)*: GitHub Personal Access Token (with `repo` scope) for assigning issues to Copilot Coding Agent. Falls back to the built-in `GITHUB_TOKEN` automatically; only needed if `GITHUB_TOKEN` lacks permission to assign to the Copilot agent.
 
 ## MCP Server Secrets (Copilot Environment)
 Configure the following in Settings > Environments > copilot:
-- `COPILOT_MCP_GITHUB_TOKEN`: GitHub Personal Access Token for the GitHub MCP server
 - `COPILOT_MCP_SNYK_TOKEN`: Snyk API token for the Snyk MCP server
+- `COPILOT_MCP_GITHUB_TOKEN` *(optional)*: GitHub Personal Access Token for the GitHub MCP server. The Copilot Coding Agent environment provides `GITHUB_TOKEN` automatically; only add this if you need a token with broader scopes than `GITHUB_TOKEN` provides.
