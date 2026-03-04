@@ -23,7 +23,7 @@
 #
 # Unified security scanning and code review workflow. Combines Snyk security analysis with natural language PR comment updates. Runs on pull requests and pushes to main branches. Posts detailed findings with remediation guidance as PR comments. Creates GitHub issues for vulnerabilities detected on push events and assigns them to the Copilot Coding Agent for remediation.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"12c98c84eca2b73f9bce3be7e343c1dca99b780a04c39bf8dd4e982b60e830ab","compiler_version":"v0.53.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"0a22a3e00bcb75de0baa725e2cafd4b7d8ff5cdf17cee2468ad8adf3230a526e","compiler_version":"v0.53.2"}
 
 name: "Security Review Agent"
 "on":
@@ -248,9 +248,7 @@ jobs:
           retention-days: 1
 
   agent:
-    needs:
-      - activation
-      - request-copilot-review
+    needs: activation
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -287,7 +285,7 @@ jobs:
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
         with:
           node-version: lts/*
       - name: Install Snyk CLI
@@ -1138,41 +1136,6 @@ jobs:
             setupGlobals(core, github, context, exec, io);
             const { main } = require('/opt/gh-aw/actions/check_membership.cjs');
             await main();
-
-  request-copilot-review:
-    name: Request Copilot Code Review
-    needs: activation
-    if: >
-      github.event_name == 'pull_request' &&
-      (github.event.pull_request.user.login == 'copilot-swe-agent[bot]' ||
-      github.event.pull_request.user.login == 'github-copilot[bot]' ||
-      contains(github.event.pull_request.labels.*.name, 'copilot'))
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-
-    steps:
-      - name: Request GitHub Copilot code review
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const pullNumber = context.payload.pull_request.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            console.log(`Requesting Copilot review for PR #${pullNumber}`);
-            try {
-              await github.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number: pullNumber,
-                reviewers: ['copilot'],
-              });
-              console.log(`Successfully requested Copilot review for PR #${pullNumber}`);
-            } catch (error) {
-              console.log(`Could not request Copilot review: ${error.message}`);
-              console.log('Note: Copilot code review requires GitHub Copilot to be enabled for the repository.');
-            }
 
   safe_outputs:
     needs: agent
