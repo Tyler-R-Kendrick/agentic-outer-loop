@@ -1,0 +1,46 @@
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  copilot-setup-steps:
+    name: Copilot Coding Agent Setup
+    runs-on: ubuntu-latest
+    environment: copilot
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update && sudo apt install gh -y
+
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Install agent skills
+        run: |
+          npm install -g skills
+          if ! npx skills add vercel-labs/agent-skills --all; then
+            echo "Warning: Failed to install vercel-labs/agent-skills"
+          fi
+          if ! npx skills add github/awesome-copilot --all; then
+            echo "Warning: Failed to install github/awesome-copilot skills"
+          fi
